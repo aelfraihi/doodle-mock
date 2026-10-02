@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting poll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fog: #eef1f4;
+  --paper: #ffffff;
+  --ink: #1c2433;
+  --muted: #5d6879;
+  --line: #d7dde5;
+  --blue: #1f5f8b;
+  --blue-soft: #dce9f3;
+  --yes: #2f8a57;
+  --yes-soft: #d3eedd;
+  --maybe: #c98f00;
+  --maybe-soft: #fbecc0;
+  --no: #8a94a3;
+  --no-soft: #e9ecf0;
+  --danger: #b23a3a;
+  --head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fog); color: var(--ink); font: 16px/1.5 var(--body); }
+main { max-width: 860px; margin: 0 auto; padding: 40px 20px 80px; }
+h1, h2, h3 { font-family: var(--head); line-height: 1.15; margin: 0 0 .4em; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 750; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0 0 1em; }
+a { color: var(--blue); }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+section.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-top: 24px; }
+label { display: block; font-weight: 600; font-size: .9rem; margin: 16px 0 6px; }
+input[type=text], input[type=password], input[type=number], input[type=time], textarea, select {
+  font: inherit; color: inherit; background: var(--paper); border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 11px; width: 100%;
+}
+textarea { min-height: 80px; resize: vertical; }
+input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 3px solid var(--blue); outline-offset: 2px;
+}
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 8px 14px; }
+button:hover { border-color: var(--blue); }
+button.primary { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; padding: 11px 20px; }
+button.primary:hover { background: #174a6d; }
+button.danger { color: var(--danger); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grow { flex: 1 1 200px; }
+.notice { padding: 12px 16px; border-radius: 10px; background: var(--blue-soft); margin: 16px 0; }
+.notice.error { background: #f6dede; color: #7a2020; }
+.notice.ok { background: var(--yes-soft); color: #1e5a39; }
+
+.durations { display: flex; flex-wrap: wrap; gap: 8px; }
+.durations button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.cal { max-width: 380px; }
+.cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid .dow { text-align: center; font-size: .8rem; color: var(--muted); }
+.cal-grid button { padding: 8px 0; text-align: center; border-radius: 8px; }
+.cal-grid button[aria-pressed=true] { background: var(--blue); color: #fff; border-color: var(--blue); }
+.cal-grid button.today { font-weight: 700; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); border-radius: 999px; padding: 3px 4px 3px 12px; font-variant-numeric: tabular-nums; }
+.chip button { border: 0; background: transparent; padding: 0 8px; border-radius: 999px; line-height: 1.6; }
+.date-block { border-top: 1px solid var(--line); padding: 14px 0; }
+.date-block:first-child { border-top: 0; }
+.time-add { display: inline-flex; gap: 6px; }
+.time-add input { width: 120px; }
+
+.tz-note { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 20px 0; }
+.tz-clock { font-family: var(--head); font-weight: 750; font-size: 1.6rem; color: var(--blue); }
+
+.day { margin-top: 28px; }
+.day > h3 { position: sticky; top: 0; background: var(--fog); padding: 6px 0; z-index: 1; }
+.slot { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(140px, 1fr) auto; gap: 16px; align-items: center;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
+.slot.best { border-color: var(--yes); box-shadow: inset 4px 0 0 var(--yes); }
+.slot .time { font-family: var(--head); font-weight: 600; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.slot .local { font-size: .85rem; color: var(--muted); }
+.bar { display: flex; height: 10px; background: var(--no-soft); border-radius: 999px; overflow: hidden; }
+.bar span:first-child { background: var(--yes); }
+.bar span:last-child { background: var(--maybe); }
+.counts { font-size: .85rem; color: var(--muted); margin-top: 6px; }
+.names { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.badge { display: inline-block; font-size: .75rem; font-weight: 600; color: var(--yes); margin-left: 6px; }
+
+.vote { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.vote button { border: 0; border-radius: 0; padding: 9px 12px; background: var(--paper); font-size: .9rem; }
+.vote button + button { border-left: 1px solid var(--line); }
+.vote button[data-v=yes][aria-pressed=true] { background: var(--yes); color: #fff; }
+.vote button[data-v=maybe][aria-pressed=true] { background: var(--maybe); color: #fff; }
+.vote button[data-v=no][aria-pressed=true] { background: var(--no); color: #fff; }
+
+.poll-item { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 0; border-top: 1px solid var(--line); }
+.poll-item:first-child { border-top: 0; }
+.status-closed { color: var(--danger); font-weight: 600; }
+.sharebox { display: flex; gap: 8px; margin-top: 8px; }
+.sharebox input { flex: 1; }
+.submit-bar { position: sticky; bottom: 0; background: var(--fog); padding: 14px 0; margin-top: 16px; border-top: 1px solid var(--line); }
+
+@media (max-width: 640px) {
+  main { padding-top: 24px; }
+  section.panel { padding: 18px; }
+  .slot { grid-template-columns: 1fr; gap: 10px; }
+  .vote { width: 100%; }
+  .vote button { flex: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slot { transition: border-color .15s; }
+}
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Loading…</p></main>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9hZGxO3MOsbdkAGUsEztpkSvFJDjmNcGMB6tOYf4NWF3HnvMkgXhpdxdI51DycUy6pg/exec';
+const TZ = 'Europe/Berlin';
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const DURATIONS = [30, 60, 90, 120, 180, 240];
+const app = document.getElementById('app');
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+async function api(payload) {
+  if (SCRIPT_URL.indexOf('PASTE_') === 0) throw new Error('Set SCRIPT_URL in index.html to your Apps Script web app URL.');
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+
+function durationText(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  if (!h) return m + ' min';
+  return h + (h === 1 ? ' hour' : ' hours') + (m ? ' ' + m + ' min' : '');
+}
+
+function tzOffset(date, tz) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).formatToParts(date);
+  const m = {};
+  parts.forEach(p => { m[p.type] = p.value; });
+  const asUtc = Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour, +m.minute, +m.second);
+  return Math.round((asUtc - date.getTime()) / 60000);
+}
+
+function cetToDate(dateStr, timeStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, mi] = timeStr.split(':').map(Number);
+  const guess = Date.UTC(y, mo - 1, d, h, mi);
+  const off1 = tzOffset(new Date(guess), TZ);
+  let t = guess - off1 * 60000;
+  const off2 = tzOffset(new Date(t), TZ);
+  if (off2 !== off1) t = guess - off2 * 60000;
+  return new Date(t);
+}
+
+function cetAbbr(date) { return tzOffset(date, TZ) === 120 ? 'CEST' : 'CET'; }
+
+function fmt(date, tz, opts) { return new Intl.DateTimeFormat(undefined, Object.assign({ timeZone: tz }, opts)).format(date); }
+
+function slotInfo(slot, duration) {
+  const start = cetToDate(slot.date, slot.start);
+  const end = new Date(start.getTime() + duration * 60000);
+  const hm = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+  const cetTime = fmt(start, TZ, hm) + '–' + fmt(end, TZ, hm) + ' ' + cetAbbr(start);
+  let local = '';
+  if (tzOffset(start, USER_TZ) !== tzOffset(start, TZ)) {
+    const lt = { hour: 'numeric', minute: '2-digit' };
+    const sameDay = fmt(start, USER_TZ, { dateStyle: 'short' }) === fmt(start, TZ, { dateStyle: 'short' });
+    const dayPart = sameDay ? '' : fmt(start, USER_TZ, { weekday: 'short', day: 'numeric', month: 'short' }) + ', ';
+    const zone = fmt(start, USER_TZ, { timeZoneName: 'short' }).split(' ').pop();
+    local = 'Your time: ' + dayPart + fmt(start, USER_TZ, lt) + '–' + fmt(end, USER_TZ, lt) + ' ' + zone;
+  }
+  return { start, cetTime, local };
+}
+
+function dayHeading(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    .format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
+function pollLink(id) { return location.origin + location.pathname + '#/p/' + id; }
+
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); } catch (e) { prompt('Copy this link:', text); return; }
+  const old = btn.textContent;
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.textContent = old; }, 1500);
+}
+
+function store(kind, key, val) {
+  try {
+    const s = kind === 'session' ? sessionStorage : localStorage;
+    if (val === undefined) return s.getItem(key);
+    if (val === null) s.removeItem(key); else s.setItem(key, val);
+  } catch (e) { return null; }
+}
+
+function route() {
+  const h = location.hash.replace(/^#\/?/, '');
+  if (h.indexOf('p/') === 0) return renderPoll(h.slice(2));
+  if (h === 'admin') return renderAdmin();
+  renderHome();
+}
+window.addEventListener('hashchange', route);
+route();
+
+function renderHome() {
+  document.title = 'Meeting poll';
+  app.innerHTML = `
+    <h1>Find a time that works</h1>
+    <p class="muted">Open the poll link you were sent to mark which times suit you.</p>
+    <p><a href="#/admin">Organizer sign in</a></p>`;
+}
+
+/* Admin */
+
+function renderAdmin() {
+  document.title = 'Organizer';
+  const pw = store('session', 'adminPw');
+  if (!pw) return renderLogin();
+  app.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <h1>Your polls</h1>
+      <button id="logout">Sign out</button>
+    </div>
+    <section class="panel" id="builder"></section>
+    <section class="panel"><h2>Existing polls</h2><div id="list"><p class="muted">Loading polls…</p></div></section>`;
+  document.getElementById('logout').onclick = () => { store('session', 'adminPw', null); renderLogin(); };
+  Builder.mount(document.getElementById('builder'));
+  loadList();
+}
+
+function renderLogin(err) {
+  app.innerHTML = `
+    <h1>Organizer sign in</h1>
+    <section class="panel" style="max-width:420px">
+      <form id="loginForm">
+        <label for="pw">Admin password</label>
+        <input type="password" id="pw" autocomplete="current-password" required>
+        ${err ? `<div class="notice error">${esc(err)}</div>` : ''}
+        <p style="margin-top:16px"><button class="primary" type="submit">Sign in</button></p>
+      </form>
+    </section>`;
+  document.getElementById('loginForm').onsubmit = async e => {
+    e.preventDefault();
+    const pw = document.getElementById('pw').value;
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+      await api({ action: 'login', password: pw });
+      store('session', 'adminPw', pw);
+      renderAdmin();
+    } catch (er) { renderLogin(er.message); }
+  };
+}
+
+async function loadList() {
+  const box = document.getElementById('list');
+  try {
+    const { polls } = await api({ action: 'listPolls', password: store('session', 'adminPw') });
+    if (!polls.length) { box.innerHTML = '<p class="muted">No polls yet. Create one above to get a link to share.</p>'; return; }
+    box.innerHTML = polls.map(p => `
+      <div class="poll-item">
+        <div>
+          <strong>${esc(p.title)}</strong>
+          ${p.closed ? '<span class="status-closed small">Closed</span>' : ''}
+          <div class="small muted">${durationText(p.duration)}, ${p.slots.length} time options, ${p.responseCount} ${p.responseCount === 1 ? 'response' : 'responses'}</div>
+        </div>
+        <div class="row">
+          <a href="#/p/${esc(p.id)}"><button>Results</button></a>
+          <button data-copy="${esc(p.id)}">Copy link</button>
+          <button data-close="${esc(p.id)}" data-state="${p.closed ? '0' : '1'}">${p.closed ? 'Reopen' : 'Close'}</button>
+          <button class="danger" data-del="${esc(p.id)}" data-title="${esc(p.title)}">Delete</button>
+        </div>
+      </div>`).join('');
+    box.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(pollLink(b.dataset.copy), b));
+    box.querySelectorAll('[data-close]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { await api({ action: 'setClosed', password: store('session', 'adminPw'), id: b.dataset.close, closed: b.dataset.state === '1' }); loadList(); }
+      catch (e) { alert(e.message); b.disabled = false; }
+    });
+    box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('Delete "' + b.dataset.title + '" and all its responses? This also removes its tab in the Google Sheet.')) return;
+      b.disabled = true;
+      try { await api({ action: 'deletePoll', password: store('session', 'adminPw'), id: b.dataset.del }); loadList(); }
+      catch (e) { alert(e.message); b.disabled = false; }
+    });
+  } catch (e) {
+    if (/password/i.test(e.message)) { store('session', 'adminPw', null); return renderLogin(e.message); }
+    box.innerHTML = `<div class="notice error">${esc(e.message)}</div>`;
+  }
+}
+
+const Builder = {
+  state: null,
+  reset() {
+    const now = new Date();
+    this.state = { duration: 60, month: new Date(now.getFullYear(), now.getMonth(), 1), dates: {}, defaults: ['10:00', '14:00'] };
+  },
+  mount(el) {
+    this.el = el;
+    if (!this.state) this.reset();
+    el.innerHTML = `
+      <h2>New poll</h2>
+      <div id="created"></div>
+      <label for="bTitle">Title</label>
+      <input type="text" id="bTitle" maxlength="150" placeholder="Project kickoff">
+      <label for="bDesc">Details for participants (optional)</label>
+      <textarea id="bDesc" maxlength="2000"></textarea>
+      <label for="bLoc">Location or video link (optional)</label>
+      <input type="text" id="bLoc" maxlength="300">
+
+      <label>Meeting length</label>
+      <div class="durations" id="durs"></div>
+      <div class="row" style="margin-top:8px">
+        <span class="small muted">Other length in minutes:</span>
+        <input type="number" id="customDur" min="5" max="1440" step="5" style="width:110px">
+      </div>
+
+      <label>Start times added to each new date (CET)</label>
+      <div id="defaults"></div>
+
+      <label>Dates</label>
+      <p class="small muted">Click days to add or remove them. Times are in Central European Time.</p>
+      <div class="cal" id="cal"></div>
+
+      <div id="dates" style="margin-top:20px"></div>
+      <div id="bMsg"></div>
+      <p style="margin-top:16px"><button class="primary" id="createBtn">Create poll</button> <span class="small muted" id="slotCount"></span></p>`;
+    document.getElementById('customDur').oninput = e => {
+      const v = parseInt(e.target.value, 10);
+      if (v > 0) { this.state.duration = v; this.renderDurations(); }
+    };
+    document.getElementById('createBtn').onclick = () => this.create();
+    this.renderAll();
+  },
+  renderAll() { this.renderDurations(); this.renderDefaults(); this.renderCal(); this.renderDates(); },
+  renderDurations() {
+    const box = document.getElementById('durs');
+    box.innerHTML = DURATIONS.map(d => `<button type="button" data-d="${d}" aria-pressed="${this.state.duration === d}">${durationText(d)}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => {
+      this.state.duration = +b.dataset.d;
+      document.getElementById('customDur').value = '';
+      this.renderDurations();
+    });
+  },
+  timeEditor(times, onAdd, onRemove, idPrefix) {
+    const html = `<div class="row">
+      ${times.map((t, i) => `<span class="chip">${t}<button type="button" aria-label="Remove ${t}" data-rm="${i}">×</button></span>`).join('')}
+      <span class="time-add"><input type="time" id="${idPrefix}T" step="900" aria-label="Start time"><button type="button" id="${idPrefix}A">Add time</button></span>
+    </div>`;
+    return { html, bind: root => {
+      root.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => onRemove(+b.dataset.rm));
+      const input = root.querySelector('#' + idPrefix + 'T');
+      const add = () => { if (input.value) onAdd(input.value.slice(0, 5)); };
+      root.querySelector('#' + idPrefix + 'A').onclick = add;
+      input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); add(); } };
+    } };
+  },
+  addTime(list, t) { if (list.indexOf(t) < 0) { list.push(t); list.sort(); } },
+  renderDefaults() {
+    const box = document.getElementById('defaults');
+    const ed = this.timeEditor(this.state.defaults,
+      t => { this.addTime(this.state.defaults, t); this.renderDefaults(); },
+      i => { this.state.defaults.splice(i, 1); this.renderDefaults(); }, 'def');
+    box.innerHTML = ed.html;
+    ed.bind(box);
+  },
+  renderCal() {
+    const s = this.state, m = s.month;
+    const first = new Date(m.getFullYear(), m.getMonth(), 1);
+    const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    const lead = (first.getDay() + 6) % 7;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const key = d => `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    let cells = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => `<div class="dow">${d}</div>`).join('');
+    for (let i = 0; i < lead; i++) cells += '<div></div>';
+    for (let d = 1; d <= days; d++) {
+      const dt = new Date(m.getFullYear(), m.getMonth(), d);
+      const k = key(d);
+      cells += `<button type="button" data-k="${k}" aria-pressed="${!!s.dates[k]}" ${dt < today ? 'disabled' : ''} class="${+dt === +today ? 'today' : ''}">${d}</button>`;
+    }
+    const box = document.getElementById('cal');
+    box.innerHTML = `<div class="cal-head">
+        <button type="button" id="prevM" aria-label="Previous month">‹</button>
+        <strong>${m.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</strong>
+        <button type="button" id="nextM" aria-label="Next month">›</button>
+      </div><div class="cal-grid">${cells}</div>`;
+    box.querySelector('#prevM').onclick = () => { s.month = new Date(m.getFullYear(), m.getMonth() - 1, 1); this.renderCal(); };
+    box.querySelector('#nextM').onclick = () => { s.month = new Date(m.getFullYear(), m.getMonth() + 1, 1); this.renderCal(); };
+    box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      const k = b.dataset.k;
+      if (s.dates[k]) delete s.dates[k]; else s.dates[k] = s.defaults.slice();
+      this.renderCal(); this.renderDates();
+    });
+  },
+  renderDates() {
+    const s = this.state, keys = Object.keys(s.dates).sort();
+    const box = document.getElementById('dates');
+    let total = 0;
+    keys.forEach(k => { total += s.dates[k].length; });
+    document.getElementById('slotCount').textContent = keys.length ? `${total} time options on ${keys.length} ${keys.length === 1 ? 'date' : 'dates'}` : '';
+    if (!keys.length) { box.innerHTML = ''; return; }
+    box.innerHTML = keys.map((k, i) => `<div class="date-block" data-i="${i}">
+        <div class="row" style="justify-content:space-between">
+          <strong>${dayHeading(k)}</strong>
+          <span class="row"><button type="button" class="small" data-all="${k}">Use these times for all dates</button>
+          <button type="button" class="small danger" data-rmd="${k}">Remove date</button></span>
+        </div>
+        <div class="editor" style="margin-top:8px"></div>
+      </div>`).join('');
+    keys.forEach((k, i) => {
+      const block = box.querySelector(`[data-i="${i}"]`);
+      const ed = this.timeEditor(s.dates[k],
+        t => { this.addTime(s.dates[k], t); this.renderDates(); },
+        j => { s.dates[k].splice(j, 1); this.renderDates(); }, 'd' + i);
+      const holder = block.querySelector('.editor');
+      holder.innerHTML = ed.html;
+      ed.bind(holder);
+    });
+    box.querySelectorAll('[data-all]').forEach(b => b.onclick = () => {
+      const src = s.dates[b.dataset.all];
+      Object.keys(s.dates).forEach(k => { s.dates[k] = src.slice(); });
+      this.renderDates();
+    });
+    box.querySelectorAll('[data-rmd]').forEach(b => b.onclick = () => { delete s.dates[b.dataset.rmd]; this.renderCal(); this.renderDates(); });
+  },
+  async create() {
+    const s = this.state;
+    const msg = document.getElementById('bMsg');
+    const title = document.getElementById('bTitle').value.trim();
+    const slots = [];
+    Object.keys(s.dates).sort().forEach(d => s.dates[d].forEach(t => slots.push({ date: d, start: t })));
+    if (!title) { msg.innerHTML = '<div class="notice error">Add a title so participants know what the meeting is.</div>'; return; }
+    if (!slots.length) { msg.innerHTML = '<div class="notice error">Pick at least one date with a start time.</div>'; return; }
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true; btn.textContent = 'Creating…'; msg.innerHTML = '';
+    try {
+      const { id } = await api({ action: 'createPoll', password: store('session', 'adminPw'), poll: {
+        title, description: document.getElementById('bDesc').value, location: document.getElementById('bLoc').value,
+        duration: s.duration, slots
+      } });
+      this.reset();
+      this.mount(this.el);
+      const link = pollLink(id);
+      document.getElementById('created').innerHTML = `<div class="notice ok"><strong>Poll created.</strong> Share this link:
+        <div class="sharebox"><input type="text" readonly value="${esc(link)}"><button type="button" id="cpNew">Copy link</button></div></div>`;
+      document.getElementById('cpNew').onclick = e => copy(link, e.target);
+      loadList();
+    } catch (e) {
+      msg.innerHTML = `<div class="notice error">${esc(e.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Create poll';
+    }
+  }
+};
+
+/* Participant */
+
+async function renderPoll(id) {
+  app.innerHTML = '<p class="muted">Loading poll…</p>';
+  let data;
+  try { data = await api({ action: 'getPoll', id }); }
+  catch (e) { app.innerHTML = `<h1>Poll unavailable</h1><div class="notice error">${esc(e.message)}</div>`; return; }
+  const { poll, responses } = data;
+  document.title = poll.title;
+
+  const savedName = store('local', 'pollName') || '';
+  const state = { answers: {}, name: savedName, comment: '' };
+  const mine = responses.find(r => r.name.toLowerCase() === savedName.toLowerCase());
+  if (mine) { state.answers = Object.assign({}, mine.answers); state.comment = mine.comment; }
+
+  const score = s => responses.reduce((a, r) => a + (r.answers[s.id] === 'yes' ? 1 : r.answers[s.id] === 'maybe' ? 0.5 : 0), 0);
+  const top = Math.max(0, ...poll.slots.map(score));
+
+  const byDay = {};
+  poll.slots.forEach(s => { (byDay[s.date] = byDay[s.date] || []).push(s); });
+
+  const nowCet = new Date();
+  const userZone = fmt(nowCet, USER_TZ, { timeZoneName: 'long' }).split(', ').pop();
+  const sameZone = tzOffset(nowCet, USER_TZ) === tzOffset(nowCet, TZ);
+  const tzText = sameZone
+    ? 'All times are in Central European Time, which matches your time zone.'
+    : `All times are in Central European Time (Berlin, Paris, Rome). You appear to be in ${esc(USER_TZ.replace(/_/g, ' '))} (${esc(userZone)}), so your local time is shown under each option.`;
+
+  const slotHtml = s => {
+    const info = slotInfo(s, poll.duration);
+    const yes = responses.filter(r => r.answers[s.id] === 'yes');
+    const maybe = responses.filter(r => r.answers[s.id] === 'maybe');
+    const n = responses.length || 1;
+    const best = top > 0 && score(s) === top;
+    const btns = poll.closed ? '' : `<div class="vote" role="group" aria-label="Your answer for ${esc(info.cetTime)}">
+        ${[['yes', 'Yes'], ['maybe', 'If need be'], ['no', 'No']].map(([v, l]) => `<button type="button" data-slot="${esc(s.id)}" data-v="${v}" aria-pressed="${state.answers[s.id] === v}">${l}</button>`).join('')}
+      </div>`;
+    return `<div class="slot ${best ? 'best' : ''}">
+      <div>
+        <div class="time">${esc(info.cetTime)}${best ? '<span class="badge">Most popular</span>' : ''}</div>
+        ${info.local ? `<div class="local">${esc(info.local)}</div>` : ''}
+      </div>
+      <div>
+        <div class="bar" aria-hidden="true"><span style="width:${yes.length / n * 100}%"></span><span style="width:${maybe.length / n * 100}%"></span></div>
+        <div class="counts">${yes.length} yes, ${maybe.length} if need be</div>
+        ${yes.length ? `<div class="names">Yes: ${yes.map(r => esc(r.name)).join(', ')}</div>` : ''}
+        ${maybe.length ? `<div class="names">If need be: ${maybe.map(r => esc(r.name)).join(', ')}</div>` : ''}
+      </div>
+      ${btns}
+    </div>`;
+  };
+
+  const comments = responses.filter(r => r.comment);
+  app.innerHTML = `
+    <h1>${esc(poll.title)}</h1>
+    <p class="muted">${durationText(poll.duration)} meeting${poll.location ? ', ' + esc(poll.location) : ''}</p>
+    ${poll.description ? `<p style="white-space:pre-line">${esc(poll.description)}</p>` : ''}
+    ${poll.closed ? '<div class="notice">This poll is closed. The results below are final.</div>' : ''}
+    <div class="tz-note"><div class="tz-clock">${fmt(nowCet, TZ, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}</div>
+      <div class="small">It is now ${fmt(nowCet, TZ, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })} ${cetAbbr(nowCet)} in Central Europe${sameZone ? '' : ' and ' + fmt(nowCet, USER_TZ, { hour: 'numeric', minute: '2-digit' }) + ' where you are'}. ${tzText}</div></div>
+    ${poll.closed ? '' : `<label for="pName">Your name</label>
+      <input type="text" id="pName" maxlength="60" autocomplete="name" value="${esc(state.name)}">
+      <div id="nameNote" class="small muted" style="margin-top:6px">${mine ? 'You already answered. Changes will update your answer.' : 'Answer each option, then save. Use the same name later to change your answer.'}</div>`}
+    ${Object.keys(byDay).sort().map(d => `<div class="day"><h3>${dayHeading(d)}</h3>${byDay[d].map(slotHtml).join('')}</div>`).join('')}
+    ${poll.closed ? '' : `<label for="pComment">Comment (optional)</label>
+      <textarea id="pComment" maxlength="500">${esc(state.comment)}</textarea>
+      <div class="submit-bar row"><button class="primary" id="saveBtn">Save my answers</button><span id="pMsg" class="small"></span></div>`}
+    ${comments.length ? `<section class="panel"><h2>Comments</h2>${comments.map(r => `<p><strong>${esc(r.name)}:</strong> ${esc(r.comment)}</p>`).join('')}</section>` : ''}
+    <p class="small muted" style="margin-top:24px">${responses.length} ${responses.length === 1 ? 'person has' : 'people have'} answered.</p>`;
+
+  if (poll.closed) return;
+
+  app.querySelectorAll('.vote button').forEach(b => b.onclick = () => {
+    state.answers[b.dataset.slot] = b.dataset.v;
+    b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  });
+
+  const nameInput = document.getElementById('pName');
+  nameInput.onchange = () => {
+    const match = responses.find(r => r.name.toLowerCase() === nameInput.value.trim().toLowerCase());
+    if (!match) { document.getElementById('nameNote').textContent = 'Answer each option, then save.'; return; }
+    state.answers = Object.assign({}, match.answers);
+    document.getElementById('pComment').value = match.comment;
+    app.querySelectorAll('.vote button').forEach(x => x.setAttribute('aria-pressed', state.answers[x.dataset.slot] === x.dataset.v));
+    document.getElementById('nameNote').textContent = 'Loaded your earlier answer. Changes will update it.';
+  };
+
+  document.getElementById('saveBtn').onclick = async e => {
+    const btn = e.target, msg = document.getElementById('pMsg');
+    const name = nameInput.value.trim();
+    if (!name) { msg.textContent = 'Enter your name before saving.'; nameInput.focus(); return; }
+    const missing = poll.slots.filter(s => !state.answers[s.id]).length;
+    if (missing && !confirm(`${missing} ${missing === 1 ? 'option has' : 'options have'} no answer and will be saved as No. Save anyway?`)) return;
+    btn.disabled = true; btn.textContent = 'Saving…'; msg.textContent = '';
+    try {
+      await api({ action: 'submit', pollId: poll.id, name, comment: document.getElementById('pComment').value, answers: state.answers });
+      store('local', 'pollName', name);
+      await renderPoll(id);
+      const note = document.getElementById('nameNote');
+      if (note) { note.textContent = 'Saved. Thanks, ' + name + '.'; note.className = 'notice ok'; }
+    } catch (er) {
+      msg.textContent = er.message;
+      btn.disabled = false; btn.textContent = 'Save my answers';
+    }
+  };
+}
+</script>
+</body>
+</html>
